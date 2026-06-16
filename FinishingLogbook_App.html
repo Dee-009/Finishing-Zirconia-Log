@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finishing Logbook — SKDLA AOX</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F8F7F2;--bg2:#EEECEA;--bg3:#E4E2DC;
+  --white:#FFFFFF;
+  --text:#1A1A18;--text2:#5F5E5A;--text3:#888780;
+  --border:#D3D1C7;--border2:#B4B2A9;
+  --blue:#378ADD;--blue-bg:#E6F1FB;--blue-dark:#0C447C;
+  --green:#1D9E75;--green-bg:#E1F5EE;--green-dark:#085041;
+  --red:#E24B4A;--red-bg:#FDECEA;--red-dark:#791F1F;
+  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-dark:#412402;
+  --purple:#534AB7;--purple-bg:#CECBF6;--purple-dark:#26215C;
+  --radius:10px;--radius-sm:6px;--radius-xs:4px;
+  --font:'Inter',system-ui,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;min-height:100vh}
+
+/* Layout */
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:var(--white);border-right:0.5px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10}
+.main{margin-left:220px;flex:1;padding:28px 32px;min-height:100vh}
+.sidebar-logo{padding:0 18px 20px;border-bottom:0.5px solid var(--border);margin-bottom:12px}
+.sidebar-logo .brand{font-size:14px;font-weight:500;margin-bottom:2px}
+.sidebar-logo .sub{font-size:11px;color:var(--text3)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;cursor:pointer;color:var(--text2);border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--bg);color:var(--text);border-left-color:var(--text);font-weight:500}
+.nav-item i{font-size:16px;width:18px;text-align:center}
+.nav-section{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:14px 18px 6px}
+.sidebar-bottom{margin-top:auto;padding:14px 18px;border-top:0.5px solid var(--border);font-size:11px;color:var(--text3)}
+
+/* Page header */
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.page-header p{font-size:13px;color:var(--text2)}
+.panel{display:none}.panel.active{display:block}
+
+/* Cards */
+.card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px}
+.card-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px}
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.kpi-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:4px}
+.kpi-value{font-size:24px;font-weight:500;line-height:1;margin-bottom:2px}
+.kpi-sub{font-size:11px;color:var(--text3)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border);background:var(--white);color:var(--text);font-family:var(--font);transition:background .15s}
+.btn:hover{background:var(--bg2)}
+.btn.primary{background:var(--text);color:var(--white);border-color:var(--text)}
+.btn.primary:hover{background:#333}
+.btn.success{background:var(--green-bg);color:var(--green-dark);border-color:var(--green)}
+.btn.danger{background:var(--red-bg);color:var(--red-dark);border-color:var(--red)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Form elements */
+input,select,textarea{font-family:var(--font);font-size:13px;padding:7px 10px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--white);color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--text);box-shadow:0 0 0 2px rgba(26,26,24,.08)}
+label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px}
+.field{margin-bottom:12px}
+
+/* Date bar */
+.date-bar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.date-bar input[type=date]{font-size:13px}
+.day-label{font-size:14px;font-weight:500;color:var(--text2)}
+
+/* Station cards */
+.station-card{background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.station-header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:0.5px solid var(--border)}
+.station-icon{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.station-name{font-size:14px;font-weight:500}
+.station-meta{font-size:11px;color:var(--text3);margin-top:1px}
+.bottleneck-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:500;background:var(--red-bg);color:var(--red-dark);margin-left:6px;vertical-align:middle}
+.chairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;padding:12px 16px}
+.chair-slot{border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;background:var(--bg)}
+.chair-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.support-tag{padding:1px 5px;border-radius:3px;font-size:9px;font-weight:500;background:var(--amber-bg);color:var(--amber-dark)}
+.chair-row{display:flex;align-items:center;gap:8px}
+.avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.tech-select{flex:1;font-size:12px}
+
+/* Notes field */
+.notes-field{padding:0 16px 12px}
+.notes-field textarea{width:100%;font-size:12px;resize:vertical;min-height:52px}
+
+/* Table */
+.table-wrap{border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{background:var(--bg2)}
+th{padding:8px 12px;text-align:left;font-size:11px;font-weight:500;color:var(--text3);border-bottom:0.5px solid var(--border);white-space:nowrap}
+td{padding:8px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg)}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:500}
+.badge-primary{background:var(--green-bg);color:var(--green-dark)}
+.badge-support{background:var(--amber-bg);color:var(--amber-dark)}
+.badge-station{display:inline-block;padding:2px 8px;border-radius:var(--radius-xs);font-size:11px;font-weight:500}
+
+/* Search/filter row */
+.filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filter-row input{flex:1;min-width:160px}
+
+/* Toast */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--white);padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;opacity:0;transition:opacity .25s;pointer-events:none;z-index:99;max-width:320px}
+#toast.show{opacity:1}
+#toast.error{background:var(--red)}
+
+/* Loading overlay */
+.loading{display:none;position:fixed;inset:0;background:rgba(248,247,242,.8);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-size:13px;color:var(--text2)}
+.loading.show{display:flex}
+.spinner{width:24px;height:24px;border:2.5px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Empty state */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text3)}
+.empty i{font-size:28px;display:block;margin-bottom:8px}
+
+/* Responsive */
+@media(max-width:700px){
+  .sidebar{width:100%;height:auto;position:relative;flex-direction:row;overflow-x:auto;border-right:none;border-bottom:0.5px solid var(--border)}
+  .main{margin-left:0;padding:16px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading"><div class="spinner"></div><span>Loading…</span></div>
+<div id="toast"></div>
+
+<div class="app-shell">
+  <!-- Sidebar -->
+  <nav class="sidebar" role="navigation" aria-label="Main navigation">
+    <div class="sidebar-logo">
+      <div class="brand">Finishing Logbook</div>
+      <div class="sub">SKDLA · AOX Full Arch</div>
+    </div>
+    <div class="nav-section">Supervisor tools</div>
+    <div class="nav-item active" onclick="showPanel('assign')" id="nav-assign">
+      <i class="ti ti-user-check" aria-hidden="true"></i> Daily assignment
+    </div>
+    <div class="nav-item" onclick="showPanel('log')" id="nav-log">
+      <i class="ti ti-history" aria-hidden="true"></i> Log history
+    </div>
+    <div class="nav-item" onclick="showPanel('lookup')" id="nav-lookup">
+      <i class="ti ti-search" aria-hidden="true"></i> Tech lookup
+    </div>
+    <div class="nav-item" onclick="showPanel('coverage')" id="nav-coverage">
+      <i class="ti ti-chart-bar" aria-hidden="true"></i> Coverage report
+    </div>
+    <div class="sidebar-bottom">
+      <div>Connected to Supabase</div>
+      <div style="color:var(--green);margin-top:2px"><i class="ti ti-circle-filled" aria-hidden="true" style="font-size:8px;vertical-align:1px"></i> SKDLA Database</div>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- DAILY ASSIGNMENT -->
+    <div id="panel-assign" class="panel active">
+      <div class="page-header">
+        <h1>Daily assignment</h1>
+        <p>Assign technicians to each workstation chair for the day</p>
+      </div>
+      <div class="date-bar">
+        <i class="ti ti-calendar" aria-hidden="true" style="font-size:18px;color:var(--text3)"></i>
+        <input type="date" id="assign-date">
+        <span class="day-label" id="day-label"></span>
+        <button class="btn" onclick="loadAssignment()" style="margin-left:4px">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Load saved
+        </button>
+      </div>
+      <div id="station-grid"></div>
+      <div class="btn-row" style="justify-content:flex-end;margin-top:4px">
+        <button class="btn danger" onclick="clearDay()"><i class="ti ti-eraser" aria-hidden="true"></i> Clear all</button>
+        <button class="btn primary" onclick="saveAssignment()" id="save-btn">
+          <i class="ti ti-device-floppy" aria-hidden="true"></i> Save assignment
+        </button>
+      </div>
+    </div>
+
+    <!-- LOG HISTORY -->
+    <div id="panel-log" class="panel">
+      <div class="page-header">
+        <h1>Log history</h1>
+        <p>All saved workstation assignments — searchable and exportable</p>
+      </div>
+      <div class="kpi-grid" id="log-kpis"></div>
+      <div class="filter-row">
+        <input type="text" id="log-search" placeholder="Search tech name, date, station…" oninput="renderLog()">
+        <select id="log-station" onchange="renderLog()" style="min-width:160px">
+          <option value="">All stations</option>
+        </select>
+        <input type="date" id="log-from" onchange="renderLog()">
+        <input type="date" id="log-to" onchange="renderLog()">
+        <button class="btn" onclick="exportCSV()"><i class="ti ti-download" aria-hidden="true"></i> Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Day</th><th>Station</th><th>Chair</th><th>Technician</th><th>Role</th><th>Notes</th></tr>
+          </thead>
+          <tbody id="log-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TECH LOOKUP -->
+    <div id="panel-lookup" class="panel">
+      <div class="page-header">
+        <h1>Tech lookup</h1>
+        <p>See every station a technician has worked — perfect for tracing an arch</p>
+      </div>
+      <div class="filter-row">
+        <select id="lookup-tech" onchange="renderLookup()" style="min-width:200px;font-size:13px;padding:8px 10px">
+          <option value="">Select a technician…</option>
+        </select>
+        <input type="date" id="lookup-from" onchange="renderLookup()">
+        <input type="date" id="lookup-to" onchange="renderLookup()">
+      </div>
+      <div class="kpi-grid" id="lookup-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Day</th><th>Station</th><th>Chair</th><th>Role</th><th>Notes</th></tr>
+          </thead>
+          <tbody id="lookup-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- COVERAGE REPORT -->
+    <div id="panel-coverage" class="panel">
+      <div class="page-header">
+        <h1>Coverage report</h1>
+        <p>Which stations have been covered and by whom — spot gaps in scheduling</p>
+      </div>
+      <div class="filter-row">
+        <input type="date" id="cov-from" onchange="renderCoverage()">
+        <span style="color:var(--text3)">to</span>
+        <input type="date" id="cov-to" onchange="renderCoverage()">
+        <button class="btn" onclick="renderCoverage()"><i class="ti ti-refresh" aria-hidden="true"></i> Refresh</button>
+      </div>
+      <div id="cov-content"></div>
+    </div>
+
+  </main>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+<script>
+const SUPABASE_URL='https://asdunkqodixbhbohxtuq.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzZHVua3FvZGl4Ymhib2h4dHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUwNTcsImV4cCI6MjA5MDgyMTA1N30.lStrSSEpwFFk5GuXl2qzh2tr6bLZFY4_x9u6q4FcVeo';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const TECHS=['Alex Nuno','Juan Carlos H.','Adela Fuentes','Arturo Y Figueroa','Mario Lopez','Chae Jung','Arturo Figueroa','Briana Lopez','Sangchul Kang','Lucero Mendiola','Rosario A Martinez','Javier Flores','Alma Delia Vergara','Jeannette Rubio','Ryan Okon'];
+
+const STATIONS=[
+  {id:'sg',name:'Stain & Glaze',icon:'ti-droplet',color:'#E6F1FB',iconColor:'#185FA5',bottleneck:false,chairs:[
+    {id:'sg1',label:'Chair 1',role:'Primary'},{id:'sg2',label:'Chair 2',role:'Primary'}]},
+  {id:'pt',name:'Pink Tissue',icon:'ti-heart',color:'#FDECEA',iconColor:'#A32D2D',bottleneck:true,chairs:[
+    {id:'pt1',label:'Chair 1',role:'Primary'},{id:'pt2',label:'Chair 2 — support',role:'Support'}]},
+  {id:'as',name:'Apply Structure',icon:'ti-box',color:'#E1F5EE',iconColor:'#0F6E56',bottleneck:false,chairs:[
+    {id:'as1',label:'Chair 1',role:'Primary'},{id:'as2',label:'Chair 2 — support',role:'Support'}]},
+  {id:'po',name:'Polish',icon:'ti-sparkles',color:'#FAEEDA',iconColor:'#BA7517',bottleneck:false,chairs:[
+    {id:'po1',label:'Chair 1',role:'Primary'}]},
+  {id:'ce',name:'Cement',icon:'ti-tool',color:'#CECBF6',iconColor:'#534AB7',bottleneck:false,chairs:[
+    {id:'ce1',label:'Chair 1',role:'Primary'}]},
+];
+
+const AVG_COLORS=[
+  {bg:'#E6F1FB',c:'#0C447C'},{bg:'#E1F5EE',c:'#085041'},
+  {bg:'#FAEEDA',c:'#412402'},{bg:'#CECBF6',c:'#26215C'},
+  {bg:'#FDECEA',c:'#791F1F'},{bg:'#EAF3DE',c:'#27500A'},
+  {bg:'#FAECE7',c:'#993C1D'},{bg:'#FBEAF0',c:'#72243E'},
+];
+function aColor(name){const i=TECHS.indexOf(name);return AVG_COLORS[Math.abs(i)%AVG_COLORS.length]||AVG_COLORS[0];}
+function initials(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function today(){return new Date().toISOString().slice(0,10);}
+function dayName(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'});}
+function fmtDate(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function loading(show){document.getElementById('loading').classList.toggle('show',show);}
+function toast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className='show'+(err?' error':'');clearTimeout(t._t);t._t=setTimeout(()=>t.className='',3000);}
+
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  if(id==='log')fetchAndRenderLog();
+  if(id==='lookup')renderLookup();
+  if(id==='coverage')renderCoverage();
+}
+
+// ── ASSIGN PANEL ──
+const assignDate=document.getElementById('assign-date');
+assignDate.value=today();
+assignDate.addEventListener('change',()=>{updateDayLabel();});
+updateDayLabel();
+
+function updateDayLabel(){
+  const d=assignDate.value;
+  document.getElementById('day-label').textContent=d?dayName(d):'';
+}
+
+function buildStationGrid(){
+  const grid=document.getElementById('station-grid');
+  grid.innerHTML='';
+  STATIONS.forEach(st=>{
+    const card=document.createElement('div');card.className='station-card';
+    const chairsHtml=st.chairs.map(ch=>`
+      <div class="chair-slot">
+        <div class="chair-label">
+          <i class="ti ti-armchair" aria-hidden="true" style="font-size:13px"></i>
+          ${ch.label} ${ch.role==='Support'?'<span class="support-tag">Support</span>':''}
+        </div>
+        <div class="chair-row">
+          <div class="avatar" id="av-${ch.id}" style="background:#F1EFE8;color:#888780">—</div>
+          <select class="tech-select" id="sel-${ch.id}" onchange="updateAvatar('${ch.id}')">
+            <option value="">— unassigned —</option>
+            ${TECHS.map(t=>`<option value="${t}">${t}</option>`).join('')}
+          </select>
+        </div>
+      </div>`).join('');
+
+    card.innerHTML=`
+      <div class="station-header">
+        <div class="station-icon" style="background:${st.color}">
+          <i class="ti ${st.icon}" aria-hidden="true" style="font-size:18px;color:${st.iconColor}"></i>
+        </div>
+        <div>
+          <div class="station-name">${st.name}${st.bottleneck?'<span class="bottleneck-badge">bottleneck</span>':''}</div>
+          <div class="station-meta">${st.chairs.length} chair${st.chairs.length>1?'s':''} · ${st.chairs.filter(c=>c.role==='Support').length>0?'1 support chair':st.chairs.length+' primary'}</div>
+        </div>
+      </div>
+      <div class="chairs-grid">${chairsHtml}</div>
+      <div class="notes-field">
+        <label for="notes-${st.id}">Notes for this station (optional)</label>
+        <textarea id="notes-${st.id}" placeholder="e.g. batch ready by 10am, running short on material…" rows="2"></textarea>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function updateAvatar(chairId){
+  const sel=document.getElementById('sel-'+chairId);
+  const av=document.getElementById('av-'+chairId);
+  const name=sel?sel.value:'';
+  if(name){const c=aColor(name);av.style.background=c.bg;av.style.color=c.c;av.textContent=initials(name);}
+  else{av.style.background='#F1EFE8';av.style.color='#888780';av.textContent='—';}
+}
+
+async function loadAssignment(){
+  const d=assignDate.value;if(!d)return;
+  loading(true);
+  const {data,error}=await sb.from('finishing_logbook').select('*').eq('log_date',d);
+  loading(false);
+  if(error){toast('Error loading: '+error.message,true);return;}
+  STATIONS.forEach(st=>{
+    st.chairs.forEach(ch=>{
+      const rec=data.find(r=>r.chair_id===ch.id);
+      const sel=document.getElementById('sel-'+ch.id);
+      if(sel){sel.value=rec?rec.tech_name:'';updateAvatar(ch.id);}
+    });
+    const notesEl=document.getElementById('notes-'+st.id);
+    const stNotes=data.find(r=>r.station_id===st.id&&r.notes);
+    if(notesEl)notesEl.value=stNotes?stNotes.notes:'';
+  });
+  if(data.length)toast(`Loaded ${data.length} assignments for ${fmtDate(d)}`);
+  else toast('No assignments saved for this date yet');
+}
+
+async function saveAssignment(){
+  const d=assignDate.value;
+  if(!d){toast('Please select a date',true);return;}
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true;loading(true);
+  await sb.from('finishing_logbook').delete().eq('log_date',d);
+  const rows=[];
+  STATIONS.forEach(st=>{
+    const notes=document.getElementById('notes-'+st.id)?.value||null;
+    st.chairs.forEach(ch=>{
+      const sel=document.getElementById('sel-'+ch.id);
+      if(sel&&sel.value){
+        rows.push({log_date:d,station_id:st.id,station_name:st.name,chair_id:ch.id,chair_label:ch.label,tech_name:sel.value,role:ch.role,notes});
+      }
+    });
+  });
+  if(!rows.length){loading(false);btn.disabled=false;toast('Nothing to save — assign at least one tech',true);return;}
+  const {error}=await sb.from('finishing_logbook').insert(rows);
+  loading(false);btn.disabled=false;
+  if(error)toast('Save failed: '+error.message,true);
+  else toast(`Saved ${rows.length} assignments for ${fmtDate(d)}`);
+}
+
+function clearDay(){
+  STATIONS.forEach(st=>{
+    st.chairs.forEach(ch=>{const s=document.getElementById('sel-'+ch.id);if(s){s.value='';updateAvatar(ch.id);}});
+    const n=document.getElementById('notes-'+st.id);if(n)n.value='';
+  });
+}
+
+// ── LOG PANEL ──
+let allLogData=[];
+
+async function fetchAndRenderLog(){
+  loading(true);
+  const {data,error}=await sb.from('finishing_logbook').select('*').order('log_date',{ascending:false});
+  loading(false);
+  if(error){toast('Error: '+error.message,true);return;}
+  allLogData=data||[];
+  renderLog();
+  renderLogKPIs();
+}
+
+function renderLogKPIs(){
+  const days=[...new Set(allLogData.map(r=>r.log_date))].length;
+  const techs=[...new Set(allLogData.map(r=>r.tech_name))].length;
+  const support=allLogData.filter(r=>r.role==='Support').length;
+  document.getElementById('log-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Days logged</div><div class="kpi-value">${days}</div><div class="kpi-sub">unique dates</div></div>
+    <div class="kpi"><div class="kpi-label">Total records</div><div class="kpi-value">${allLogData.length}</div><div class="kpi-sub">assignments</div></div>
+    <div class="kpi"><div class="kpi-label">Techs tracked</div><div class="kpi-value">${techs}</div><div class="kpi-sub">unique people</div></div>
+    <div class="kpi"><div class="kpi-label">Support shifts</div><div class="kpi-value">${support}</div><div class="kpi-sub">at Pink Tissue / Structure</div></div>`;
+}
+
+function renderLog(){
+  const q=(document.getElementById('log-search')?.value||'').toLowerCase();
+  const sf=document.getElementById('log-station')?.value||'';
+  const from=document.getElementById('log-from')?.value||'';
+  const to=document.getElementById('log-to')?.value||'';
+  const filtered=allLogData.filter(r=>{
+    const matchQ=!q||r.log_date.includes(q)||r.tech_name.toLowerCase().includes(q)||r.station_name.toLowerCase().includes(q);
+    const matchS=!sf||r.station_id===sf;
+    const matchFrom=!from||r.log_date>=from;
+    const matchTo=!to||r.log_date<=to;
+    return matchQ&&matchS&&matchFrom&&matchTo;
+  });
+  const tbody=document.getElementById('log-tbody');tbody.innerHTML='';
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty"><i class="ti ti-inbox"></i>No records found</div></td></tr>';return;}
+  const st=STATIONS.reduce((m,s)=>{m[s.id]=s;return m;},{});
+  filtered.forEach(r=>{
+    const s=st[r.station_id];const c=aColor(r.tech_name);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="font-weight:500;white-space:nowrap">${fmtDate(r.log_date)}</td>
+      <td style="color:var(--text3)">${dayName(r.log_date)}</td>
+      <td><span class="badge-station" style="background:${s?s.color:'#F1EFE8'};color:${s?s.iconColor:'#888780'}">${r.station_name}</span></td>
+      <td style="color:var(--text3);font-size:11px">${r.chair_label}</td>
+      <td><div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="background:${c.bg};color:${c.c};width:26px;height:26px;font-size:9px">${initials(r.tech_name)}</div>${r.tech_name}</div></td>
+      <td><span class="badge ${r.role==='Support'?'badge-support':'badge-primary'}">${r.role}</span></td>
+      <td style="color:var(--text3);font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notes||'—'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function exportCSV(){
+  if(!allLogData.length){toast('No data to export',true);return;}
+  const rows=[['Date','Day','Station','Chair','Technician','Role','Notes'],...allLogData.map(r=>[r.log_date,dayName(r.log_date),r.station_name,r.chair_label,r.tech_name,r.role,r.notes||''])];
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='finishing_logbook_'+today()+'.csv';a.click();
+  toast('CSV exported successfully');
+}
+
+// ── LOOKUP PANEL ──
+async function renderLookup(){
+  const tech=document.getElementById('lookup-tech')?.value||'';
+  const from=document.getElementById('lookup-from')?.value||'';
+  const to=document.getElementById('lookup-to')?.value||'';
+  const tbody=document.getElementById('lookup-tbody');
+  const kpis=document.getElementById('lookup-kpis');
+  if(!tech){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><i class="ti ti-user-search"></i>Select a technician to see their history</div></td></tr>';kpis.innerHTML='';return;}
+  loading(true);
+  let q=sb.from('finishing_logbook').select('*').eq('tech_name',tech).order('log_date',{ascending:false});
+  if(from)q=q.gte('log_date',from);
+  if(to)q=q.lte('log_date',to);
+  const {data,error}=await q;
+  loading(false);
+  if(error){toast('Error: '+error.message,true);return;}
+  const recs=data||[];
+  const days=[...new Set(recs.map(r=>r.log_date))].length;
+  const stCounts={};recs.forEach(r=>{stCounts[r.station_name]=(stCounts[r.station_name]||0)+1;});
+  const topSt=Object.entries(stCounts).sort((a,b)=>b[1]-a[1])[0];
+  const support=recs.filter(r=>r.role==='Support').length;
+  kpis.innerHTML=`
+    <div class="kpi"><div class="kpi-label">Days worked</div><div class="kpi-value">${days}</div><div class="kpi-sub">in selected period</div></div>
+    <div class="kpi"><div class="kpi-label">Total shifts</div><div class="kpi-value">${recs.length}</div><div class="kpi-sub">station assignments</div></div>
+    <div class="kpi"><div class="kpi-label">Main station</div><div class="kpi-value" style="font-size:15px;padding-top:3px">${topSt?topSt[0]:'—'}</div><div class="kpi-sub">${topSt?topSt[1]+' times':''}</div></div>
+    <div class="kpi"><div class="kpi-label">Support shifts</div><div class="kpi-value">${support}</div><div class="kpi-sub">Pink Tissue / Structure</div></div>`;
+  tbody.innerHTML='';
+  if(!recs.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><i class="ti ti-inbox"></i>No records for this period</div></td></tr>';return;}
+  const stMap=STATIONS.reduce((m,s)=>{m[s.id]=s;return m;},{});
+  recs.forEach(r=>{
+    const s=stMap[r.station_id];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="font-weight:500;white-space:nowrap">${fmtDate(r.log_date)}</td>
+      <td style="color:var(--text3)">${dayName(r.log_date)}</td>
+      <td><span class="badge-station" style="background:${s?s.color:'#F1EFE8'};color:${s?s.iconColor:'#888780'}">${r.station_name}</span></td>
+      <td style="color:var(--text3);font-size:11px">${r.chair_label}</td>
+      <td><span class="badge ${r.role==='Support'?'badge-support':'badge-primary'}">${r.role}</span></td>
+      <td style="color:var(--text3);font-size:11px">${r.notes||'—'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── COVERAGE PANEL ──
+async function renderCoverage(){
+  const from=document.getElementById('cov-from')?.value||new Date(Date.now()-14*24*3600*1000).toISOString().slice(0,10);
+  const to=document.getElementById('cov-to')?.value||today();
+  loading(true);
+  const {data,error}=await sb.from('finishing_logbook').select('*').gte('log_date',from).lte('log_date',to).order('log_date');
+  loading(false);
+  if(error){toast('Error: '+error.message,true);return;}
+  const recs=data||[];
+  const covEl=document.getElementById('cov-content');
+  if(!recs.length){covEl.innerHTML='<div class="empty" style="margin-top:2rem"><i class="ti ti-inbox" style="font-size:28px;display:block;margin:0 auto 8px"></i>No records in this date range</div>';return;}
+  const days=[...new Set(recs.map(r=>r.log_date))].sort();
+  let html='';
+  STATIONS.forEach(st=>{
+    const stRecs=recs.filter(r=>r.station_id===st.id);
+    html+=`<div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div class="station-icon" style="background:${st.color};width:30px;height:30px">
+          <i class="ti ${st.icon}" aria-hidden="true" style="font-size:15px;color:${st.iconColor}"></i>
+        </div>
+        <div style="font-weight:500">${st.name}${st.bottleneck?'<span class="bottleneck-badge">bottleneck</span>':''}</div>
+        <div style="margin-left:auto;font-size:12px;color:var(--text3)">${stRecs.length} assignments across ${days.length} days</div>
+      </div>
+      <div style="overflow-x:auto">
+      <table style="min-width:500px">
+        <thead><tr><th>Date</th><th>Day</th>${st.chairs.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead>
+        <tbody>`;
+    days.forEach(d=>{
+      const dc=aColor;
+      html+=`<tr><td style="font-weight:500;white-space:nowrap">${fmtDate(d)}</td><td style="color:var(--text3)">${dayName(d)}</td>`;
+      st.chairs.forEach(ch=>{
+        const rec=stRecs.find(r=>r.log_date===d&&r.chair_id===ch.id);
+        if(rec){
+          const c=aColor(rec.tech_name);
+          html+=`<td><div style="display:flex;align-items:center;gap:6px"><div class="avatar" style="background:${c.bg};color:${c.c};width:22px;height:22px;font-size:8px">${initials(rec.tech_name)}</div><span style="font-size:12px">${rec.tech_name}</span>${rec.role==='Support'?'<span class="support-tag">Support</span>':''}</div></td>`;
+        } else {
+          html+=`<td style="color:var(--text3);font-size:11px">—</td>`;
+        }
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table></div></div>';
+  });
+  covEl.innerHTML=html;
+}
+
+// Init dropdowns
+const stFilter=document.getElementById('log-station');
+STATIONS.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;stFilter.appendChild(o);});
+const lookupTech=document.getElementById('lookup-tech');
+TECHS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;lookupTech.appendChild(o);});
+
+// Default dates
+const twoWeeksAgo=new Date(Date.now()-14*24*3600*1000).toISOString().slice(0,10);
+document.getElementById('log-from').value=twoWeeksAgo;
+document.getElementById('log-to').value=today();
+document.getElementById('lookup-from').value=twoWeeksAgo;
+document.getElementById('lookup-to').value=today();
+document.getElementById('cov-from').value=twoWeeksAgo;
+document.getElementById('cov-to').value=today();
+
+buildStationGrid();
+</script>
+</body>
+</html>
